@@ -1,0 +1,90 @@
+- name: Install and Configure Helm and Jenkins
+  hosts: kubernetes_master
+  become: yes
+  tasks:
+
+    - name: Install Helm
+      get_url:
+        url: https://get.helm.sh/helm-v3.9.4-linux-amd64.tar.gz
+        dest: /tmp/helm.tar.gz
+
+    - name: Extract Helm
+      unarchive:
+        src: /tmp/helm.tar.gz
+        dest: /usr/local/bin/
+        remote_src: yes
+
+    - name: Move Helm binary to /usr/local/bin
+      command: mv /usr/local/bin/linux-amd64/helm /usr/local/bin/helm
+
+    - name: Check Helm version
+      command: helm version
+      register: helm_version_output
+
+    - debug:
+        msg: "Helm version: {{ helm_version_output.stdout }}"
+
+    - name: Add the Jenkins Helm repository
+      shell: /usr/local/bin/helm repo add jenkins https://charts.jenkins.io
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: helm_repo_add
+      ignore_errors: yes
+
+    - name: Update Helm repositories
+      shell: /usr/local/bin/helm repo update
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      ignore_errors: yes
+
+    - name: Check if Jenkins Helm repository is added
+      shell: /usr/local/bin/helm repo list
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: helm_repo_list
+      ignore_errors: yes
+
+    - name: Debug Helm repository list
+      debug:
+        msg: "Helm repositories: {{ helm_repo_list.stdout }}"
+
+    - name: Create namespace for Jenkins
+      shell: kubectl create namespace jenkins
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      ignore_errors: yes
+
+    - name: Check if Jenkins namespace exists
+      shell: kubectl get namespace jenkins
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: jenkins_namespace
+      ignore_errors: yes
+
+    - name: Install Jenkins using Helm
+      shell: /usr/local/bin/helm install jenkins jenkins/jenkins --namespace jenkins
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+
+    - name: Get Jenkins service URL
+      shell: kubectl get svc jenkins --namespace jenkins -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: jenkins_service_url
+      changed_when: false
+
+    - name: Show Jenkins service URL
+      debug:
+        msg: "Jenkins URL: http://{{ jenkins_service_url.stdout }}"
+
+    - name: Get Jenkins Admin password
+      shell: kubectl get secret --namespace jenkins jenkins-admin-token -o go-template='{{.data.token | base64decode}}'
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: jenkins_admin_password
+      changed_when: false
+
+    - name: Show Jenkins Admin password
+      debug:
+        msg: "Jenkins Admin Password: {{ jenkins_admin_password.stdout }}"
+
