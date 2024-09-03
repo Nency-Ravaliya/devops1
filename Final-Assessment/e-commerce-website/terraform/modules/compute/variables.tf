@@ -35,5 +35,5 @@ variable "worker_instance_type" {
 
 variable "ami_id" {
   description = "AMI ID for EC2 instances."
-  default     = "ami-0162fe8bfebb6ea16" # Ubuntu 20.04 LTS in ap-northeast-1
+  default     = "ami-0a0e5d9c7acc336f1" # Ubuntu 20.04 LTS in us-east-1
 }

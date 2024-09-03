@@ -17,7 +17,7 @@ module "compute" {
   key_pair_name            = var.key_pair_name
   master_instance_type     = var.master_instance_type # Separate instance type for master
   worker_instance_type     = var.worker_instance_type # Separate instance type for workers
-  ami_id                   = "ami-0162fe8bfebb6ea16"  # Update as per your region
+  ami_id                   = "ami-0a0e5d9c7acc336f1"  # Update as per your region
 }
 
 # S3 Module
